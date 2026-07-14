@@ -1,0 +1,61 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="dark">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Login - AI Assistant</title>
+    <!-- Google Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    
+    <!-- Custom CSS -->
+    <link rel="stylesheet" href="/static/style.css">
+    
+    <!-- Lucide Icons -->
+    <script src="https://unpkg.com/lucide@latest"></script>
+</head>
+<body class="login-page-body">
+    <div class="login-container">
+        <div class="login-card">
+            <div class="login-logo">
+                <i data-lucide="bot" style="color: var(--accent-color); width: 42px; height: 42px;"></i>
+            </div>
+            <h1>AI Assistant</h1>
+            <p class="login-desc">A professional workspace assistant built to accelerate coding, analysis, and creative writing. Powered by Groq.</p>
+            
+            <div class="login-actions">
+                <a href="/login/guest" class="btn-login btn-guest">
+                    <i data-lucide="user"></i>
+                    <span>Continue as Guest</span>
+                </a>
+                
+                {% if google_configured %}
+                <a href="/login/google" class="btn-login btn-google">
+                    <svg viewBox="0 0 48 48" class="google-svg">
+                        <path fill="#EA4335" d="M24 9.5c3.54 0 6.71 1.22 9.21 3.6l6.85-6.85C35.9 2.38 30.47 0 24 0 14.62 0 6.51 5.38 2.56 13.22l7.98 6.19C12.43 13.72 17.74 9.5 24 9.5z"/>
+                        <path fill="#4285F4" d="M46.5 24c0-1.63-.15-3.2-.42-4.73H24v9.0h12.75c-.55 2.93-2.2 5.42-4.69 7.08l7.29 5.65C43.6 37.05 46.5 31.25 46.5 24z"/>
+                        <path fill="#FBBC05" d="M10.54 28.59c-.48-1.45-.76-2.99-.76-4.59s.27-3.14.76-4.59l-7.98-6.19C.92 16.46 0 20.12 0 24c0 3.88.92 7.54 2.56 10.78l7.98-6.19z"/>
+                        <path fill="#34A853" d="M24 48c6.48 0 11.93-2.13 15.89-5.81l-7.29-5.65c-2.21 1.48-5.03 2.36-8.6 2.36-6.26 0-11.57-4.22-13.46-9.91l-7.98 6.19C6.51 42.62 14.62 48 24 48z"/>
+                    </svg>
+                    <span>Sign in with Google</span>
+                </a>
+                {% else %}
+                <div class="google-disabled-note">
+                    <i data-lucide="info" style="width:14px;height:14px;"></i>
+                    <span>Google sign-in is not configured.</span>
+                </div>
+                {% endif %}
+            </div>
+            
+            <div class="login-footer">
+                <span>Version 1.2.0 • K-Hub Junior Developer Recruitment</span>
+            </div>
+        </div>
+    </div>
+    
+    <script>
+        lucide.createIcons();
+    </script>
+</body>
+</html>

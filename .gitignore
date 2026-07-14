@@ -1,0 +1,10 @@
+backend/venv/
+backend/.env
+storage/chat.db
+storage/uploads/*
+!storage/uploads/.gitkeep
+*.zip
+*.log
+__pycache__/
+*.pyc
+.DS_Store

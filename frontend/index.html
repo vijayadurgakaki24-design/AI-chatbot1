@@ -1,0 +1,264 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="dark">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AI Assistant</title>
+    <!-- Inter Google Font -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    
+    <!-- Custom CSS -->
+    <link rel="stylesheet" href="/static/style.css">
+    
+    <!-- Marked Markdown Parser -->
+    <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
+    
+    <!-- Prism Syntax Highlighter CSS & JS -->
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/themes/prism-tomorrow.min.css" rel="stylesheet" />
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/prism.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/components/prism-python.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/components/prism-javascript.min.js"></script>
+    
+    <!-- jsPDF Client PDF Writer -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+    
+    <!-- Lucide Icons -->
+    <script src="https://unpkg.com/lucide@latest"></script>
+</head>
+<body>
+    <!-- Hidden File Input for Multiple Uploads -->
+    <input type="file" multiple id="file-uploader" style="display:none;">
+
+    <!-- Hamburger Toggle Button -->
+    <button id="btn-sidebar-toggle" class="sidebar-toggle-btn" title="Toggle Sidebar">
+        <i data-lucide="menu" style="width:20px;height:20px;"></i>
+    </button>
+
+    <!-- Sidebar Drawer (Hidden by default) -->
+    <aside class="sidebar-drawer" id="sidebar-drawer">
+        <div class="sidebar-header">
+            <h3>Menu</h3>
+        </div>
+        
+        <div class="sidebar-content">
+            <!-- New Chat Button -->
+            <button class="btn-sidebar-primary" id="btn-new-chat">
+                <i data-lucide="plus" style="width:16px;height:16px;"></i>
+                <span>New Chat</span>
+            </button>
+            
+            <!-- Conversation History Section -->
+            <div class="history-section">
+                <h4>History</h4>
+                <div class="sidebar-search">
+                    <input type="text" id="search-input" placeholder="Search conversations..." autocomplete="off">
+                </div>
+                <div class="conversations-list" id="conversations-list">
+                    <!-- Dynamic conversations list loaded here -->
+                </div>
+            </div>
+        </div>
+        
+        <div class="sidebar-footer">
+            <div class="user-info-section">
+                <span class="user-status-label">{{ session.get('user_name', 'Guest User') }}</span>
+                <span class="user-email-label">{{ session.get('user_id', 'Guest Account') }}</span>
+            </div>
+            
+            {% if session.get('user_id') and session.get('user_id').startswith('guest_') %}
+            <a href="/login/google" class="btn-sidebar-secondary">
+                <i data-lucide="log-in" style="width:14px;height:14px;"></i>
+                <span>Sign in with Google</span>
+            </a>
+            {% endif %}
+            
+            <a href="/logout" class="btn-sidebar-secondary btn-logout">
+                <i data-lucide="log-out" style="width:14px;height:14px;"></i>
+                <span>Logout</span>
+            </a>
+
+            <!-- Keyboard shortcuts help dialog toggle -->
+            <button class="btn-sidebar-secondary" id="btn-shortcuts-toggle">
+                <i data-lucide="keyboard" style="width:14px;height:14px;"></i>
+                <span>Shortcuts</span>
+            </button>
+            
+            <button class="btn-sidebar-secondary" id="btn-theme-toggle">
+                <i data-lucide="sun" id="theme-icon" style="width:14px;height:14px;"></i>
+                <span id="theme-toggle-text">Light Mode</span>
+            </button>
+        </div>
+    </aside>
+    
+    <div class="sidebar-backdrop" id="sidebar-backdrop"></div>
+
+    <!-- Main Workspace -->
+    <div class="main-container welcome-state" id="main-container">
+        <!-- Chat Banner -->
+        <div class="active-chat-banner" id="active-chat-banner" style="display: none;">
+            <span class="chat-banner-title" id="active-chat-title">Conversation</span>
+            <div class="banner-actions">
+                <button class="banner-action-btn" id="btn-rename-active" title="Rename Chat">
+                    <i data-lucide="edit-3" style="width:14px;height:14px;"></i>
+                </button>
+                <button class="banner-action-btn" id="btn-export-chat" title="Export (TXT)">
+                    <i data-lucide="download" style="width:14px;height:14px;"></i>
+                </button>
+                <button class="banner-action-btn delete-btn" id="btn-delete-active" title="Delete Chat">
+                    <i data-lucide="trash-2" style="width:14px;height:14px;"></i>
+                </button>
+            </div>
+        </div>
+
+        <!-- Scrollable Messages Container -->
+        <section class="messages-container" id="messages-container" style="display: none;">
+            <div class="messages-list" id="messages-list">
+                <!-- Messages populated dynamically -->
+            </div>
+            
+            <!-- Loading Indicator -->
+            <div class="loading-indicator-container" id="typing-indicator" style="display: none;">
+                <div class="loading-text">AI is thinking...</div>
+            </div>
+        </section>
+
+        <!-- Centered Welcome Title -->
+        <section class="welcome-screen" id="welcome-screen">
+            <h1 class="app-title">Assistant</h1>
+        </section>
+
+        <!-- Message Input Panel -->
+        <footer class="input-panel" id="chat-input-panel">
+            <!-- Attachment Previews List -->
+            <div class="attachment-previews-list" id="attachment-previews-list"></div>
+            
+            <div class="input-wrapper">
+                <!-- Attach Button -->
+                <button id="btn-attach" class="input-action-btn" title="Attach File">
+                    <i data-lucide="paperclip" style="width:18px;height:18px;"></i>
+                </button>
+                <!-- Voice Input Button -->
+                <button id="btn-voice" class="input-action-btn" title="Voice Input">
+                    <i data-lucide="mic" id="voice-icon" style="width:18px;height:18px;"></i>
+                </button>
+                <textarea id="chat-input" placeholder="Type a message..." rows="1" autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false"></textarea>
+                <!-- Send Button -->
+                <button id="btn-send" disabled title="Send Message">
+                    <i data-lucide="arrow-up" style="width:16px;height:16px;"></i>
+                </button>
+                <!-- Stop Generating Button -->
+                <button id="btn-stop-generating" style="display:none;" title="Stop Generating">
+                    <i data-lucide="square" style="width:14px;height:14px;"></i>
+                </button>
+                
+                <!-- Attach Popover Menu -->
+                <div class="attach-menu" id="attach-menu">
+                    <button class="attach-menu-item" id="btn-upload-file">
+                        <i data-lucide="file-plus" style="width:14px;height:14px;"></i>
+                        <span>Upload File</span>
+                    </button>
+                    <button class="attach-menu-item" id="btn-webcam-capture">
+                        <i data-lucide="camera" style="width:14px;height:14px;"></i>
+                        <span>Webcam Snap</span>
+                    </button>
+                </div>
+            </div>
+            <div class="input-footer-tip" id="input-footer-tip">
+                <span>Press Enter to send, Shift + Enter for new line</span>
+            </div>
+        </footer>
+    </div>
+    
+    <!-- Modal: Delete Confirmation -->
+    <div class="modal-overlay" id="delete-modal">
+        <div class="modal-dialog">
+            <div class="modal-header">
+                <h3>Delete Conversation?</h3>
+                <button class="modal-close-btn" id="btn-cancel-modal-x"><i data-lucide="x"></i></button>
+            </div>
+            <div class="modal-body">
+                <p>Are you sure you want to delete this conversation? This will permanently erase the message history.</p>
+            </div>
+            <div class="modal-footer">
+                <button class="btn-cancel" id="btn-cancel-modal">Cancel</button>
+                <button class="btn-confirm-delete" id="btn-confirm-delete-modal">Delete</button>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Modal: Webcam snap capture overlay -->
+    <div class="modal-overlay" id="webcam-modal">
+        <div class="modal-dialog">
+            <div class="modal-header">
+                <h3>Webcam Snapshot</h3>
+                <button class="modal-close-btn" id="btn-close-webcam-x"><i data-lucide="x"></i></button>
+            </div>
+            <div class="modal-body" style="display:flex; flex-direction:column; align-items:center; gap:12px;">
+                <video id="webcam-video" width="100%" height="auto" autoplay playsinline style="background:#000; border-radius:var(--radius); border: 1px solid var(--border-color);"></video>
+                <canvas id="webcam-canvas" style="display:none;"></canvas>
+            </div>
+            <div class="modal-footer">
+                <button class="btn-cancel" id="btn-close-webcam">Cancel</button>
+                <button class="btn-sidebar-primary" id="btn-capture-snapshot" style="margin-bottom:0; width:auto; padding: 8px 16px;">
+                    <i data-lucide="camera" style="width:14px;height:14px;"></i>
+                    <span>Capture</span>
+                </button>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Modal: Keyboard shortcuts help dialog -->
+    <div class="modal-overlay" id="shortcuts-modal">
+        <div class="modal-dialog">
+            <div class="modal-header">
+                <h3>Keyboard Shortcuts</h3>
+                <button class="modal-close-btn" id="btn-close-shortcuts-x"><i data-lucide="x"></i></button>
+            </div>
+            <div class="modal-body" style="padding:16px;">
+                <table style="width:100%; border-collapse:collapse; font-size:0.85rem;">
+                    <tr style="border-bottom:1px solid var(--border-color);">
+                        <td style="padding:10px 0; font-weight:600; color:var(--text-primary);">Enter</td>
+                        <td style="padding:10px 0; text-align:right; color:var(--text-secondary);">Send message</td>
+                    </tr>
+                    <tr style="border-bottom:1px solid var(--border-color);">
+                        <td style="padding:10px 0; font-weight:600; color:var(--text-primary);">Shift + Enter</td>
+                        <td style="padding:10px 0; text-align:right; color:var(--text-secondary);">New line</td>
+                    </tr>
+                    <tr style="border-bottom:1px solid var(--border-color);">
+                        <td style="padding:10px 0; font-weight:600; color:var(--text-primary);">Ctrl + N</td>
+                        <td style="padding:10px 0; text-align:right; color:var(--text-secondary);">Create a new chat</td>
+                    </tr>
+                    <tr style="border-bottom:1px solid var(--border-color);">
+                        <td style="padding:10px 0; font-weight:600; color:var(--text-primary);">Ctrl + K</td>
+                        <td style="padding:10px 0; text-align:right; color:var(--text-secondary);">Focus chat search</td>
+                    </tr>
+                    <tr style="border-bottom:1px solid var(--border-color);">
+                        <td style="padding:10px 0; font-weight:600; color:var(--text-primary);">Ctrl + L</td>
+                        <td style="padding:10px 0; text-align:right; color:var(--text-secondary);">Clear message input</td>
+                    </tr>
+                    <tr style="border-bottom:1px solid var(--border-color);">
+                        <td style="padding:10px 0; font-weight:600; color:var(--text-primary);">Esc</td>
+                        <td style="padding:10px 0; text-align:right; color:var(--text-secondary);">Close dialogs or sidebar</td>
+                    </tr>
+                </table>
+            </div>
+            <div class="modal-footer">
+                <button class="btn-cancel" id="btn-close-shortcuts" style="width:100%;">Close</button>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Drag and Drop Fullscreen overlay -->
+    <div class="drag-drop-overlay" id="drag-drop-overlay">
+        <div class="drag-drop-box">
+            <i data-lucide="upload" style="width:36px;height:36px;margin-bottom:12px;"></i>
+            <p>Drop your file to attach</p>
+        </div>
+    </div>
+    
+    <div class="toast-container" id="toast-container"></div>
+    <script src="/static/script.js"></script>
+</body>
+</html>
